@@ -6,7 +6,7 @@ import (
 	"os"
     "os/exec"
 	"log"
-    "bytes"
+//    "bytes"
 	"net/http"
 	"gopkg.in/go-playground/webhooks.v5/github"
 )
@@ -36,13 +36,23 @@ func getCurrentDirectory() string {
 
 const ShellToUse = "bash"
 
-func Shellout(command string) (error, string) {
-    var stdout bytes.Buffer
+func Shellout(command string) (error) {
+    //var stdout bytes.Buffer
     cmd := exec.Command(ShellToUse, "-c", command)
-    cmd.Stdout = &stdout
-    cmd.Stderr = &stdout
+    cmd.Stdout = os.Stdout
+    cmd.Stderr = os.Stdout
     err := cmd.Run()
-    return err, stdout.String()
+    return err
+}
+
+func Worker(sh_file string) {
+	log.Printf("exec script %s......", sh_file)
+	err := Shellout(sh_file)
+	if err != nil {
+		log.Printf("exec script %s error: %v", sh_file, err)
+	} else {
+		log.Printf("exec script %s done.", sh_file)
+	}
 }
 
 var secret string = "This is your Secret..."
@@ -68,7 +78,7 @@ func main() {
 				log.Printf("ErrEventNotFound")
 			}
 		}		
-		
+		 
 		var filename string = ""
 		switch payload.(type) {
 		case github.PushPayload:
@@ -87,12 +97,7 @@ func main() {
 			return
 		}
 		
-		err, out := Shellout(filename)
-		if err != nil {
-			log.Printf("exec script %s error: %v\n", filename, err)
-		} else {
-			log.Printf("exec script %s done:\n%s", filename, out)
-		}
+		go Worker(filename)
 	})
 	log.Printf("githook server running... secret=\"%s\"", secret)
 	http.ListenAndServe(":3000", nil)	
